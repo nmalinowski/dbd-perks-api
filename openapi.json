@@ -1,0 +1,251 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Dead by Daylight Perks API",
+    "description": "An API for retrieving Dead by Daylight perk information",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/Perks": {
+      "get": {
+        "tags": [
+          "Perks"
+        ],
+        "summary": "Get all perks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Perks/{id}": {
+      "get": {
+        "tags": [
+          "Perks"
+        ],
+        "summary": "Get a specific perk by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the perk",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Perk"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Perk"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Perk"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Perks/type/{type}": {
+      "get": {
+        "tags": [
+          "Perks"
+        ],
+        "summary": "Get perks by type (Survivor or Killer)",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "path",
+            "description": "The type of perk",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PerkType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Perks/character/{characterType}": {
+      "get": {
+        "tags": [
+          "Perks"
+        ],
+        "summary": "Get perks by character type (Survivor or Killer)",
+        "parameters": [
+          {
+            "name": "characterType",
+            "in": "path",
+            "description": "The character type",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CharacterType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Perk"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CharacterType": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "description": "Represents the character type",
+        "format": "int32"
+      },
+      "Perk": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Gets or sets the unique identifier for the perk",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name of the perk",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "Gets or sets the description of the perk",
+            "nullable": true
+          },
+          "iconUrl": {
+            "type": "string",
+            "description": "Gets or sets the URL to the perk's icon",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/PerkType"
+          },
+          "characterType": {
+            "$ref": "#/components/schemas/CharacterType"
+          },
+          "category": {
+            "type": "string",
+            "description": "Gets or sets the category of the perk (for filtering)",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Represents a perk in Dead by Daylight"
+      },
+      "PerkType": {
+        "enum": [
+          0,
+          1
+        ],
+        "type": "integer",
+        "description": "Represents the type of perk",
+        "format": "int32"
+      }
+    }
+  }
+}
