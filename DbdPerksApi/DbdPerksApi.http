@@ -1,0 +1,13 @@
+@DbdPerksApi_HostAddress = http://localhost:5265
+
+### Get all perks
+GET {{DbdPerksApi_HostAddress}}/api/perks
+Accept: application/json
+
+### Get a specific perk (replace NAME with actual perk name)
+GET {{DbdPerksApi_HostAddress}}/api/perks/NAME
+Accept: application/json
+
+### Get a perk icon (replace FILENAME with actual icon filename)
+GET {{DbdPerksApi_HostAddress}}/perk_icons/FILENAME.png
+Accept: image/png

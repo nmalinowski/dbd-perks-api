@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Your Own Build - Dead by Daylight</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: linear-gradient(
+          135deg,
+          #0f0f0f 0%,
+          #1a1a1a 50%,
+          #2c2c2c 100%
+        );
+        color: #eaeaea;
+        font-family: "Inter", "Segoe UI", "Arial", sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background-attachment: fixed;
+        line-height: 1.6;
+      }
+
+      /* Loading State */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        font-size: 1.1em;
+        color: #f7c873;
+      }
+      .loading::after {
+        content: "";
+        width: 20px;
+        height: 20px;
+        border: 2px solid #444;
+        border-top: 2px solid #f7c873;
+        border-radius: 50%;
+        margin-left: 10px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Navigation */
+      nav {
+        background: rgba(20, 20, 20, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 16px 24px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        animation: slideDown 0.6s ease-out;
+      }
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Cards */
+      .build-maker,
+      .saved-builds {
+        background: rgba(25, 25, 25, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+          0 1px 2px rgba(255, 255, 255, 0.1);
+        padding: 32px;
+        margin-bottom: 32px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      .build-maker:hover,
+      .saved-builds:hover {
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4),
+          0 2px 4px rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+      }
+
+      /* Controls */
+      .build-maker-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+        align-items: end;
+      }
+      .build-maker-controls label {
+        font-weight: 600;
+        color: #f7c873;
+        margin-bottom: 6px;
+        display: block;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .build-maker-controls input,
+      .build-maker-controls select,
+      .build-maker-controls button {
+        padding: 12px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(40, 40, 40, 0.8);
+        color: #eaeaea;
+        font-size: 1em;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+      .build-maker-controls input:focus,
+      .build-maker-controls select:focus {
+        outline: none;
+        border-color: #f7c873;
+        box-shadow: 0 0 0 3px rgba(247, 200, 115, 0.2);
+        transform: translateY(-1px);
+      }
+      .build-maker-controls button {
+        background: linear-gradient(135deg, #f7c873, #ff6b35);
+        color: #1a1a1a;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .build-maker-controls button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(247, 200, 115, 0.3);
+      }
+      .build-maker-controls button:active {
+        transform: translateY(0);
+      }
+
+      /* Perk Grid */
+      .perk-grid-wrapper {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        background: rgba(15, 15, 15, 0.8);
+        margin-bottom: 16px;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        scrollbar-width: thin;
+        scrollbar-color: #f7c873 transparent;
+      }
+      .perk-grid-wrapper::-webkit-scrollbar {
+        width: 8px;
+      }
+      .perk-grid-wrapper::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .perk-grid-wrapper::-webkit-scrollbar-thumb {
+        background: #f7c873;
+        border-radius: 4px;
+      }
+      .perk-grid-wrapper.collapsed {
+        max-height: 0;
+        overflow: hidden;
+        padding: 0;
+        border: none;
+        margin-bottom: 0;
+      }
+
+      .build-maker-perks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+        padding: 20px;
+      }
+
+      /* Perk Cards */
+      .build-maker-perk {
+        background: linear-gradient(
+          135deg,
+          rgba(35, 35, 35, 0.9),
+          rgba(45, 45, 45, 0.9)
+        );
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+      }
+      .build-maker-perk::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(247, 200, 115, 0.1),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+      .build-maker-perk:hover::before {
+        left: 100%;
+      }
+      .build-maker-perk.selected {
+        border-color: #f7c873;
+        box-shadow: 0 8px 32px rgba(247, 200, 115, 0.2),
+          0 0 0 1px rgba(247, 200, 115, 0.3);
+        transform: translateY(-2px);
+      }
+      .build-maker-perk:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 40px rgba(255, 46, 46, 0.2);
+      }
+      .build-maker-perk .perk-icon {
+        width: 56px;
+        height: 56px;
+        margin-right: 16px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s ease;
+      }
+      .build-maker-perk:hover .perk-icon {
+        transform: scale(1.1) rotate(3deg);
+      }
+      .perk-name {
+        font-weight: 600;
+        font-size: 1.1em;
+        color: #fff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Saved Builds */
+      .saved-build-card {
+        background: linear-gradient(
+          135deg,
+          rgba(30, 30, 30, 0.9),
+          rgba(40, 40, 40, 0.9)
+        );
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        padding: 20px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+        animation: slideInLeft 0.6s ease-out;
+      }
+      @keyframes slideInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      .saved-build-card:hover {
+        transform: translateX(8px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      }
+      .saved-build-info {
+        flex: 1;
+      }
+      .saved-build-perks {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .saved-build-perks .perk-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        transition: transform 0.2s ease;
+      }
+      .saved-build-perks .perk-icon:hover {
+        transform: scale(1.2);
+      }
+      .saved-build-name {
+        font-weight: 700;
+        color: #f7c873;
+        font-size: 1.2em;
+        margin-bottom: 4px;
+      }
+      .saved-build-role {
+        color: #ff6b35;
+        font-size: 1em;
+        font-weight: 500;
+      }
+      .delete-build-btn {
+        background: linear-gradient(135deg, #ff4757, #c44569);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        cursor: pointer;
+        font-size: 0.9em;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .delete-build-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 71, 87, 0.3);
+      }
+
+      /* Navigation Links */
+      .nav-link {
+        color: #f7c873;
+        margin-right: 32px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.1em;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #f7c873;
+        transition: width 0.3s ease;
+      }
+      .nav-link:hover {
+        color: #ff6b35;
+      }
+      .nav-link:hover::after {
+        width: 100%;
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        nav {
+          padding: 12px 16px;
+        }
+        .nav-link {
+          margin-right: 16px;
+          font-size: 1em;
+        }
+        .container {
+          padding: 16px 12px;
+        }
+        .build-maker,
+        .saved-builds {
+          padding: 20px;
+          margin-bottom: 20px;
+        }
+        .build-maker-controls {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .build-maker-perks-grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+          padding: 16px;
+        }
+        .perk-grid-wrapper {
+          max-height: 400px;
+        }
+        .saved-build-card {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .saved-build-perks {
+          margin-top: 8px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .build-maker-controls input,
+        .build-maker-controls select,
+        .build-maker-controls button {
+          padding: 10px 12px;
+          font-size: 0.9em;
+        }
+        .build-maker-perk {
+          padding: 12px;
+        }
+        .build-maker-perk .perk-icon {
+          width: 48px;
+          height: 48px;
+          margin-right: 12px;
+        }
+      }
+
+      /* Dark theme enhancements */
+      h2 {
+        margin-top: 0;
+        font-weight: 700;
+        font-size: 2em;
+        background: linear-gradient(135deg, #f7c873, #ff6b35);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+
+      /* Save button enhancement */
+      #saveBuildBtn {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+        border: none;
+        padding: 14px 28px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 20px;
+        width: 100%;
+      }
+      #saveBuildBtn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(46, 204, 113, 0.3);
+      }
+      #saveBuildBtn:disabled {
+        background: #555;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/index.html" class="nav-link">Perk Database</a>
+      <a href="/tier-list.html" class="nav-link">Tier List</a>
+      <a href="/random-build.html" class="nav-link">Random Build Generator</a>
+      <a href="/create-build.html" class="nav-link">Create Your Own Build</a>
+      <a href="/meta-builds.html" class="nav-link">Meta Builds</a>
+      <a href="/otzdarva-builds.html" class="nav-link">Otzdarva Builds</a>
+    </nav>
+    <div class="container">
+      <section class="build-maker">
+        <h2 style="color: #f7c873">Create Your Perk Build</h2>
+        <div class="build-maker-controls">
+          <label for="roleSelect">Role:</label>
+          <select id="roleSelect" onchange="updateBuildMakerPerks()">
+            <option value="Survivor">Survivor</option>
+            <option value="Killer">Killer</option>
+          </select>
+          <label for="buildName">Build Name:</label>
+          <input
+            type="text"
+            id="buildName"
+            maxlength="32"
+            placeholder="Enter build name..."
+          />
+          <button
+            type="button"
+            id="togglePerkGridBtn"
+            onclick="togglePerkGrid()"
+          >
+            Show/Hide Perks
+          </button>
+          <input
+            type="text"
+            id="perkFilter"
+            placeholder="Filter by name..."
+            oninput="updateBuildMakerPerks()"
+            style="margin-left: 16px"
+          />
+          <select
+            id="sortColumn"
+            onchange="updateBuildMakerPerks()"
+            style="margin-left: 8px"
+          >
+            <option value="name">Sort by Name</option>
+            <option value="type">Sort by Category</option>
+          </select>
+          <select
+            id="sortOrder"
+            onchange="updateBuildMakerPerks()"
+            style="margin-left: 8px"
+          >
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+          <select
+            id="categoryFilter"
+            onchange="updateBuildMakerPerks()"
+            style="margin-left: 8px"
+          >
+            <option value="">All Categories</option>
+            <option value="navigation">Navigation</option>
+            <option value="adaptation">Adaptation</option>
+            <option value="perception">Perception</option>
+            <option value="enhancement">Enhancement</option>
+            <option value="safeguard">Safeguard</option>
+            <option value="concealment">Concealment</option>
+            <option value="chasing">Chasing</option>
+            <option value="trickery">Trickery</option>
+            <option value="tracking">Tracking</option>
+            <option value="hinderance">Hinderance</option>
+            <option value="support">Support</option>
+            <option value="obstruction">Obstruction</option>
+            <option value="strategy">Strategy</option>
+            <option value="null">No Category</option>
+          </select>
+        </div>
+        <div id="perkGridWrapper" class="perk-grid-wrapper">
+          <div id="buildMakerPerks" class="build-maker-perks-grid"></div>
+        </div>
+        <button
+          id="saveBuildBtn"
+          onclick="saveBuild()"
+          style="margin-top: 16px"
+        >
+          Save Build
+        </button>
+        <!-- Remove Export/Import Controls -->
+      </section>
+      <section class="saved-builds">
+        <h2 style="color: #4ecdc4">Saved Builds</h2>
+        <div id="savedBuildsContainer"></div>
+      </section>
+    </div>
+    <script>
+      const apiUrl = window.location.origin + "/api/Perks";
+      let allPerks = [];
+      let buildMakerSelected = [];
+      async function loadPerks() {
+        const buildPerksElement = document.getElementById("buildMakerPerks");
+        buildPerksElement.innerHTML =
+          '<div class="loading">Loading perks...</div>';
+        document.getElementById("saveBuildBtn").disabled = true;
+
+        try {
+          const response = await fetch(apiUrl);
+          allPerks = await response.json();
+          updateBuildMakerPerks();
+        } catch (error) {
+          buildPerksElement.innerHTML =
+            '<p style="color: #ff4757; text-align: center; padding: 40px;">❌ Error loading perks. Please check your connection and try again.</p>';
+          document.getElementById("saveBuildBtn").disabled = true;
+        }
+      }
+      function togglePerkGrid() {
+        const wrapper = document.getElementById("perkGridWrapper");
+        wrapper.classList.toggle("collapsed");
+      }
+      function updateBuildMakerPerks() {
+        // Debug: confirm function runs and show filter values
+        const role = document.getElementById("roleSelect").value;
+        const filterText = document
+          .getElementById("perkFilter")
+          .value.toLowerCase();
+        const sortCol = document.getElementById("sortColumn").value;
+        const sortOrder = document.getElementById("sortOrder").value;
+        const category = document.getElementById("categoryFilter").value;
+        console.log(
+          "[updateBuildMakerPerks] role:",
+          role,
+          "filterText:",
+          filterText,
+          "sortCol:",
+          sortCol,
+          "sortOrder:",
+          sortOrder,
+          "category:",
+          category
+        );
+        if (!allPerks || allPerks.length === 0) {
+          document.getElementById("buildMakerPerks").innerHTML =
+            "<p>No perks loaded. The API may be down or misconfigured.</p>";
+          document.getElementById("saveBuildBtn").disabled = true;
+          return;
+        }
+        // Match API: type 0 = Survivor, type 1 = Killer
+        const typeVal = role === "Survivor" ? 0 : 1;
+        let perks = allPerks.filter((p) => p.type === typeVal);
+        console.log(
+          "[Type Filter] Perks for",
+          role,
+          ":",
+          perks.length,
+          perks.map((p) => p.name)
+        );
+        if (filterText) {
+          perks = perks.filter((p) =>
+            p.name.toLowerCase().includes(filterText)
+          );
+        }
+        if (category) {
+          if (category === "null") {
+            perks = perks.filter(
+              (p) =>
+                !p.category || p.category === null || p.category.trim() === ""
+            );
+          } else {
+            // Debug: log all category values for current role
+            console.log(
+              "[Category Filter] Filtering for category:",
+              category,
+              "Available categories:",
+              perks.map((p) => p.category)
+            );
+            perks = perks.filter(
+              (p) =>
+                p.category &&
+                p.category.trim().toLowerCase() ===
+                  category.trim().toLowerCase()
+            );
+          }
+          console.log(
+            "[Category Filter] Perks after category filter:",
+            perks.length,
+            perks.map((p) => p.name)
+          );
+        }
+        perks = perks.sort((a, b) => {
+          let vA =
+            sortCol === "type"
+              ? a.type === 0
+                ? "Survivor"
+                : "Killer"
+              : a[sortCol].toLowerCase();
+          let vB =
+            sortCol === "type"
+              ? b.type === 0
+                ? "Survivor"
+                : "Killer"
+              : b[sortCol].toLowerCase();
+          if (vA < vB) return sortOrder === "asc" ? -1 : 1;
+          if (vA > vB) return sortOrder === "asc" ? 1 : -1;
+          return 0;
+        });
+        if (perks.length === 0) {
+          document.getElementById(
+            "buildMakerPerks"
+          ).innerHTML = `<p>No perks available for ${role}. Try switching roles or check your data.</p>`;
+          document.getElementById("saveBuildBtn").disabled = true;
+          return;
+        }
+        document.getElementById("saveBuildBtn").disabled = false;
+        document.getElementById("buildMakerPerks").innerHTML = perks
+          .map(
+            (perk) => `
+                <div class="build-maker-perk${
+                  buildMakerSelected.includes(perk.name) ? " selected" : ""
+                }" onclick="toggleBuildMakerPerk('${perk.name}')">
+                    <img src="${perk.iconUrl}" alt="${
+              perk.name
+            } icon" class="perk-icon" loading="lazy" onerror="this.style.display='none'"
+                        onmouseover="showTooltip(event, '${perk.description.replace(
+                          /'/g,
+                          "'"
+                        )}')"
+                        onmousemove="showTooltip(event, '${perk.description.replace(
+                          /'/g,
+                          "'"
+                        )}')"
+                        onmouseout="hideTooltip()">
+                    <div>
+                        <div class="perk-name">${perk.name}</div>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+      function toggleBuildMakerPerk(name) {
+        if (buildMakerSelected.includes(name)) {
+          buildMakerSelected = buildMakerSelected.filter((n) => n !== name);
+        } else {
+          if (buildMakerSelected.length < 4) buildMakerSelected.push(name);
+        }
+        updateBuildMakerPerks();
+      }
+      function saveBuild() {
+        const role = document.getElementById("roleSelect").value;
+        const name = document.getElementById("buildName").value.trim();
+        const saveBtn = document.getElementById("saveBuildBtn");
+
+        if (!name) {
+          showToast("⚠️ Please enter a build name.", "warning");
+          return;
+        }
+        if (buildMakerSelected.length !== 4) {
+          showToast("⚠️ Select exactly 4 perks.", "warning");
+          return;
+        }
+
+        // Animate save button
+        saveBtn.style.transform = "scale(0.95)";
+        setTimeout(() => {
+          saveBtn.style.transform = "";
+        }, 150);
+
+        const perks = allPerks.filter((p) =>
+          buildMakerSelected.includes(p.name)
+        );
+        const builds = JSON.parse(localStorage.getItem("dbdBuilds") || "[]");
+        builds.push({ name, role, perks });
+        localStorage.setItem("dbdBuilds", JSON.stringify(builds));
+
+        buildMakerSelected = [];
+        document.getElementById("buildName").value = "";
+        updateBuildMakerPerks();
+        renderSavedBuilds();
+
+        showToast("✅ Build saved successfully!", "success");
+      }
+
+      function showToast(message, type = "info") {
+        const toast = document.createElement("div");
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${
+                  type === "success"
+                    ? "#2ecc71"
+                    : type === "warning"
+                    ? "#f39c12"
+                    : "#3498db"
+                };
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 1000;
+                animation: slideInRight 0.3s ease-out;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.animation = "slideOutRight 0.3s ease-in forwards";
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+
+      // Add toast animations
+      const style = document.createElement("style");
+      style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+      document.head.appendChild(style);
+      function renderSavedBuilds() {
+        const builds = JSON.parse(localStorage.getItem("dbdBuilds") || "[]");
+        const container = document.getElementById("savedBuildsContainer");
+        if (!builds.length) {
+          container.innerHTML = "<p>No builds saved yet.</p>";
+          return;
+        }
+        container.innerHTML = builds
+          .map(
+            (build, idx) => `
+                <div class="saved-build-card">
+                    <div class="saved-build-info">
+                        <div class="saved-build-name">${build.name}</div>
+                        <div class="saved-build-role">${build.role}</div>
+                        <div class="saved-build-perks">
+                            ${build.perks
+                              .map(
+                                (perk) =>
+                                  `<img src="${perk.iconUrl}" alt="${perk.name}" class="perk-icon" title="${perk.name}" loading="lazy" onerror="this.style.display='none'">`
+                              )
+                              .join("")}
+                        </div>
+                    </div>
+                    <button class="delete-build-btn" onclick="deleteBuild(${idx})">Delete</button>
+                </div>
+            `
+          )
+          .join("");
+      }
+      function deleteBuild(idx) {
+        const builds = JSON.parse(localStorage.getItem("dbdBuilds") || "[]");
+        builds.splice(idx, 1);
+        localStorage.setItem("dbdBuilds", JSON.stringify(builds));
+        renderSavedBuilds();
+      }
+      document.addEventListener("DOMContentLoaded", () => {
+        loadPerks();
+        renderSavedBuilds();
+      });
+      function showTooltip(e, text) {
+        let tooltip = document.getElementById("perk-tooltip");
+        if (!tooltip) {
+          tooltip = document.createElement("div");
+          tooltip.id = "perk-tooltip";
+          tooltip.style.position = "fixed";
+          tooltip.style.zIndex = "9999";
+          tooltip.style.background = "rgba(25,25,25,0.97)";
+          tooltip.style.color = "#f7c873";
+          tooltip.style.padding = "12px 18px";
+          tooltip.style.borderRadius = "10px";
+          tooltip.style.fontSize = "1em";
+          tooltip.style.boxShadow = "0 4px 16px rgba(0,0,0,0.3)";
+          tooltip.style.pointerEvents = "none";
+          document.body.appendChild(tooltip);
+        }
+        // Remove HTML tags for tooltip
+        tooltip.textContent = text
+          .replace(/<[^>]+>/g, "")
+          .replace(/\n+/g, "\n");
+        tooltip.style.display = "block";
+        tooltip.style.left = e.clientX + 16 + "px";
+        tooltip.style.top = e.clientY + 16 + "px";
+      }
+      function hideTooltip() {
+        const tooltip = document.getElementById("perk-tooltip");
+        if (tooltip) tooltip.style.display = "none";
+      }
+      // Modal rendering logic
+      function showPerkModal(perkName) {
+        const perk = allPerks.find((p) => p.name === perkName);
+        if (!perk) return;
+        const modal = document.getElementById("perkModal");
+        modal.innerHTML = `
+        <div class="modal-content">
+            <img src="${perk.iconUrl}" alt="${
+          perk.name
+        } icon" class="perk-icon" style="width:80px;height:80px;margin-bottom:16px;">
+            <h2 style="color:#f7c873;">${perk.name}</h2>
+            <div style="font-weight:600;color:#ff6b35;margin-bottom:8px;">${
+              perk.type === 0 ? "SURVIVOR PERK" : "KILLER PERK"
+            }</div>
+            <div style="color:#eaeaea;font-size:1.1em;white-space:pre-line;">${perk.description.replace(
+              /<br\s*\/?>/gi,
+              "\n"
+            )}</div>
+        </div>
+    `;
+        modal.style.display = "block";
+      }
+    </script>
+  </body>
+</html>

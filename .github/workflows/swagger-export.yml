@@ -1,0 +1,45 @@
+name: Export Swagger UI and Publish to GitHub Pages
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-export-swagger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build and run API
+        run: |
+          dotnet build DbdPerksApi/DbdPerksApi.csproj --configuration Release
+          dotnet run --project DbdPerksApi/DbdPerksApi.csproj &
+          sleep 10
+
+      - name: Export OpenAPI spec
+        run: |
+          curl -s http://localhost:5265/swagger/v1/swagger.json -o swagger.json
+
+      - name: Generate static Swagger UI
+        run: |
+          npm install swagger-ui-dist
+          mkdir -p docs
+          cp -r node_modules/swagger-ui-dist/* docs/
+          cp swagger.json docs/openapi.json
+          echo '<!DOCTYPE html><html><head><title>Swagger UI</title><link rel="stylesheet" href="swagger-ui.css"></head><body><div id="swagger-ui"></div><script src="swagger-ui-bundle.js"></script><script>window.onload=function(){window.ui=SwaggerUIBundle({url:"openapi.json",dom_id:"#swagger-ui"})}</script></body></html>' > docs/index.html
+
+      - name: Deploy Swagger UI to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs
+          publish_branch: gh-pages

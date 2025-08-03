@@ -1,0 +1,8 @@
+services:
+  dbdperksapi:
+    image: dbdperksapi
+    build:
+      context: .
+      dockerfile: DbdPerksApi/Dockerfile
+    ports:
+      - 8080:8080

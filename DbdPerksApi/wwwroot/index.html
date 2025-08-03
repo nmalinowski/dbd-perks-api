@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dead by Daylight Perk Build Generator & Database</title>
+    <meta
+      name="description"
+      content="Browse all Dead by Daylight perks and generate random builds for Survivors and Killers. Beautiful, responsive, and SEO-optimized UI."
+    />
+    <meta
+      name="keywords"
+      content="Dead by Daylight, DBD, Perks, Build Generator, Survivor, Killer, Horror, Game, Database, Randomizer"
+    />
+    <meta name="author" content="DbD Perks API" />
+    <link rel="canonical" href="https://yourdomain.com/" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Dead by Daylight Perk Build Generator & Database",
+        "url": "https://yourdomain.com/",
+        "description": "Browse all Dead by Daylight perks and generate random builds for Survivors and Killers. Beautiful, responsive, and SEO-optimized UI."
+      }
+    </script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        min-height: 100vh;
+        background: linear-gradient(
+          135deg,
+          #0f0f0f 0%,
+          #1a1a1a 50%,
+          #2c2c2c 100%
+        );
+        color: #eaeaea;
+        font-family: "Inter", "Segoe UI", "Arial", sans-serif;
+        line-height: 1.6;
+        background-attachment: fixed;
+      }
+      /* Loading State */
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        font-size: 1.1em;
+        color: #f7c873;
+      }
+      .loading::after {
+        content: "";
+        width: 20px;
+        height: 20px;
+        border: 2px solid #444;
+        border-top: 2px solid #f7c873;
+        border-radius: 50%;
+        margin-left: 10px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      /* Navigation */
+      nav {
+        background: rgba(20, 20, 20, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 16px 24px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        animation: slideDown 0.6s ease-out;
+      }
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px;
+        animation: fadeInUp 0.8s ease-out;
+      }
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      /* Hero Section */
+      .hero {
+        background: rgba(25, 25, 25, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 16px;
+        padding: 48px 32px;
+        text-align: center;
+        margin-bottom: 32px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+          0 1px 2px rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        animation: fadeInUp 0.8s ease-out;
+      }
+      /* Controls */
+      .controls {
+        background: rgba(25, 25, 25, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 32px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+          0 1px 2px rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        animation: fadeInUp 0.8s ease-out 0.2s both;
+      }
+      .filter-controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        align-items: end;
+      }
+      .filter-controls label {
+        font-weight: 600;
+        color: #f7c873;
+        margin-bottom: 6px;
+        display: block;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .filter-controls input,
+      .filter-controls select {
+        padding: 12px 16px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(40, 40, 40, 0.8);
+        color: #eaeaea;
+        font-size: 1em;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+        width: 100%;
+      }
+      .filter-controls input:focus,
+      .filter-controls select:focus {
+        outline: none;
+        border-color: #f7c873;
+        box-shadow: 0 0 0 3px rgba(247, 200, 115, 0.2);
+        transform: translateY(-1px);
+      }
+      /* Perk Grid */
+      .perks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px 0;
+      }
+      .perk-card {
+        background: linear-gradient(
+          135deg,
+          rgba(35, 35, 35, 0.9),
+          rgba(45, 45, 45, 0.9)
+        );
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.6s ease-out;
+      }
+      .perk-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(247, 200, 115, 0.1),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+      .perk-card:hover::before {
+        left: 100%;
+      }
+      .perk-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 40px rgba(255, 46, 46, 0.2);
+        border-color: rgba(247, 200, 115, 0.3);
+      }
+      .perk-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .perk-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        margin-right: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s ease;
+      }
+      .perk-card:hover .perk-icon {
+        transform: scale(1.1) rotate(3deg);
+      }
+      .perk-name {
+        font-size: 1.3em;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 4px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      .perk-type {
+        color: #f7c873;
+        font-weight: 600;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .perk-description {
+        color: #ccc;
+        font-size: 0.95em;
+        line-height: 1.6;
+      }
+      /* Navigation Links */
+      .nav-link {
+        color: #f7c873;
+        margin-right: 32px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1.1em;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+      .nav-link::after {
+        content: "";
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #f7c873;
+        transition: width 0.3s ease;
+      }
+      .nav-link:hover {
+        color: #ff6b35;
+      }
+      .nav-link:hover::after {
+        width: 100%;
+      }
+      /* Page Title */
+      h1 {
+        font-size: 3em;
+        font-weight: 800;
+        margin: 0 0 16px 0;
+        background: linear-gradient(135deg, #f7c873, #ff6b35);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-align: center;
+      }
+      .subtitle {
+        font-size: 1.2em;
+        color: #bbb;
+        margin-bottom: 32px;
+        text-align: center;
+      }
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        nav {
+          padding: 12px 16px;
+        }
+        .nav-link {
+          margin-right: 16px;
+          font-size: 1em;
+        }
+        .container {
+          padding: 16px 12px;
+        }
+        .hero,
+        .controls {
+          padding: 24px 20px;
+          margin-bottom: 20px;
+        }
+        .filter-controls {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .perks-grid {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        h1 {
+          font-size: 2.2em;
+        }
+        .subtitle {
+          font-size: 1.1em;
+        }
+      }
+      @media (max-width: 480px) {
+        .hero,
+        .controls {
+          padding: 20px 16px;
+        }
+        .filter-controls input,
+        .filter-controls select {
+          padding: 10px 12px;
+          font-size: 0.9em;
+        }
+        .perk-card {
+          padding: 16px;
+        }
+        .perk-icon {
+          width: 56px;
+          height: 56px;
+          margin-right: 12px;
+        }
+        .perk-name {
+          font-size: 1.2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="fog">
+      <img
+        src="/perk_icons/fog.png"
+        alt="DbD Fog"
+        loading="lazy"
+        onerror="this.style.display='none'"
+      />
+    </div>
+    <nav>
+      <a href="/index.html" class="nav-link">Perk Database</a>
+      <a href="/tier-list.html" class="nav-link">Tier List</a>
+      <a href="/random-build.html" class="nav-link">Random Build Generator</a>
+      <a href="/create-build.html" class="nav-link">Create Your Own Build</a>
+      <a href="/meta-builds.html" class="nav-link">Meta Builds</a>
+      <a href="/otzdarva-builds.html" class="nav-link">Otzdarva Builds</a>
+    </nav>
+    <div class="container">
+      <section class="hero">
+        <h1>Dead by Daylight Perk Database</h1>
+        <p class="subtitle">
+          Browse all perks and create the perfect build for your playstyle
+        </p>
+      </section>
+      <section class="controls">
+        <div class="filter-controls">
+          <div>
+            <label for="perkTypeFilter">Filter by Type:</label>
+            <select id="perkTypeFilter" onchange="updatePerks()">
+              <option value="">All Perks</option>
+              <option value="0">Survivor Perks</option>
+              <option value="1">Killer Perks</option>
+            </select>
+          </div>
+          <div>
+            <label for="perkNameFilter">Search by Name:</label>
+            <input
+              type="text"
+              id="perkNameFilter"
+              placeholder="Search perks..."
+              oninput="updatePerks()"
+            />
+          </div>
+          <div>
+            <label for="sortOrder">Sort by:</label>
+            <select id="sortOrder" onchange="updatePerks()">
+              <option value="name">Name (A-Z)</option>
+              <option value="type">Type</option>
+            </select>
+          </div>
+        </div>
+      </section>
+      <section id="perksContainer" class="perks-grid">
+        <div class="loading">Loading perks...</div>
+      </section>
+    </div>
+    <footer>
+      &copy; 2025 Dead by Daylight Perks API. Not affiliated with Behaviour
+      Interactive.
+    </footer>
+    <script>
+      const apiUrl = window.location.origin + "/api/Perks";
+      let allPerks = [];
+      async function loadPerks() {
+        const container = document.getElementById("perksContainer");
+        container.innerHTML = '<div class="loading">Loading perks...</div>';
+        try {
+          const response = await fetch(apiUrl);
+          allPerks = await response.json();
+          updatePerks();
+        } catch (error) {
+          console.error("Error loading perks:", error);
+          container.innerHTML =
+            '<p style="color: #ff4757; text-align: center; padding: 40px; grid-column: 1 / -1;">❌ Error loading perks. Please check your connection and try again.</p>';
+        }
+      }
+      function updatePerks() {
+        const typeFilter = document.getElementById("perkTypeFilter").value;
+        const nameFilter = document
+          .getElementById("perkNameFilter")
+          .value.toLowerCase();
+        const sortOrder = document.getElementById("sortOrder").value;
+        let filteredPerks = [...allPerks];
+        if (typeFilter !== "") {
+          filteredPerks = filteredPerks.filter(
+            (perk) => perk.type.toString() === typeFilter
+          );
+        }
+        if (nameFilter) {
+          filteredPerks = filteredPerks.filter((perk) =>
+            perk.name.toLowerCase().includes(nameFilter)
+          );
+        }
+        filteredPerks.sort((a, b) => {
+          if (sortOrder === "type") {
+            if (a.type !== b.type) {
+              return a.type - b.type;
+            }
+            return a.name.localeCompare(b.name);
+          } else {
+            return a.name.localeCompare(b.name);
+          }
+        });
+        displayPerks(filteredPerks);
+      }
+      function displayPerks(perks) {
+        const container = document.getElementById("perksContainer");
+        if (!perks || perks.length === 0) {
+          container.innerHTML =
+            '<p style="color: #888; text-align: center; padding: 40px; grid-column: 1 / -1;">🔍 No perks found matching your filters.</p>';
+          return;
+        }
+        container.innerHTML = perks
+          .map(
+            (perk, index) => `
+                <article class="perk-card" itemscope itemtype="https://schema.org/Product" style="animation-delay: ${
+                  index * 0.05
+                }s">
+                    <div class="perk-header">
+                        <img src="${perk.iconUrl}" alt="${
+              perk.name
+            } icon" class="perk-icon" itemprop="image" loading="lazy" onerror="this.style.display='none'"
+                            onmouseover="showTooltip(event, '${perk.description
+                              .replace(/'/g, "'")
+                              .replace(/<br\s*\/?>/gi, "\n")}')"
+                            onmousemove="showTooltip(event, '${perk.description
+                              .replace(/'/g, "'")
+                              .replace(/<br\s*\/?>/gi, "\n")}')"
+                            onmouseout="hideTooltip()">
+                        <div>
+                            <div class="perk-name" itemprop="name">${
+                              perk.name
+                            }</div>
+                            <div class="perk-type">${
+                              perk.type === 0 ? "Survivor" : "Killer"
+                            } Perk</div>
+                        </div>
+                    </div>
+                    <div class="perk-description" itemprop="description">${
+                      perk.description
+                    }</div>
+                </article>
+            `
+          )
+          .join("");
+      }
+      function showTooltip(e, text) {
+        let tooltip = document.getElementById("perk-tooltip");
+        if (!tooltip) {
+          tooltip = document.createElement("div");
+          tooltip.id = "perk-tooltip";
+          tooltip.style.position = "fixed";
+          tooltip.style.zIndex = "9999";
+          tooltip.style.background = "rgba(25,25,25,0.97)";
+          tooltip.style.color = "#f7c873";
+          tooltip.style.padding = "12px 18px";
+          tooltip.style.borderRadius = "10px";
+          tooltip.style.fontSize = "1em";
+          tooltip.style.boxShadow = "0 4px 16px rgba(0,0,0,0.3)";
+          tooltip.style.pointerEvents = "none";
+          document.body.appendChild(tooltip);
+        }
+        tooltip.textContent = text;
+        tooltip.style.display = "block";
+        tooltip.style.left = e.clientX + 16 + "px";
+        tooltip.style.top = e.clientY + 16 + "px";
+      }
+      function hideTooltip() {
+        const tooltip = document.getElementById("perk-tooltip");
+        if (tooltip) tooltip.style.display = "none";
+      }
+      // Update perk rendering to use mouseover/mouseout for tooltips
+      function renderPerks(perks) {
+        return perks
+          .map(
+            (perk) => `
+                <div class="perk-card">
+                    <div class="perk-header">
+                        <img src="${perk.iconUrl}" alt="${
+              perk.name
+            }" class="perk-icon"
+                            onmouseover="showTooltip(event, '${perk.description.replace(
+                              /'/g,
+                              "'"
+                            )}')"
+                            onmousemove="showTooltip(event, '${perk.description.replace(
+                              /'/g,
+                              "'"
+                            )}')"
+                            onmouseout="hideTooltip()">
+                        <div>
+                            <div class="perk-name">${perk.name}</div>
+                        </div>
+                    </div>
+                    <div class="perk-description">${perk.description}</div>
+                </div>
+            `
+          )
+          .join("");
+      }
+      function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+          };
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      }
+      const debouncedUpdate = debounce(updatePerks, 300);
+      document.addEventListener("DOMContentLoaded", () => {
+        loadPerks();
+        document.getElementById("perkNameFilter").oninput = debouncedUpdate;
+      });
+    </script>
+  </body>
+</html>
